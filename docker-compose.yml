@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.6
+    container_name: glpi_db
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - db_data:/var/lib/mysql
+
+  glpi:
+    image: heitor2001/glpi-devops
+    container_name: glpi_app
+    restart: always
+    pull_policy: always
+    ports:
+      - "8080:80"
+    env_file:
+      - .env
+    depends_on:
+      - db
+    volumes:
+      - glpi_data:/var/www/html
+
+volumes:
+  db_data:
+  glpi_data:

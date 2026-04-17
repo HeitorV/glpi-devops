@@ -1,0 +1,54 @@
+name: CI/CD GLPI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      # Configura Buildx 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Login no Docker Hub
+      - name: Login no Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Extrai metadados para tags e labels automáticas
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/glpi-devops
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+            type=ref,event=branch
+
+      # Build + Push
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: self-hosted
+
+    steps:
+      - name: Executar deploy
+        run: /opt/glpi-docker/deploy.sh
